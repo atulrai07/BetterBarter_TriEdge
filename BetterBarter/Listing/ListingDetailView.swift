@@ -231,7 +231,7 @@ struct ListingDetailView: View {
                     // --- OWNER VIEW ---
                     if let trade = existingTrade, trade.status == .pending {
                         HStack(spacing: 12) {
-                            NavigationLink(destination: DirectChatView(recipient: trade.requester)) {
+                            NavigationLink(destination: ChatView(recipient: trade.requester)) {
                                 HStack {
                                     Image(systemName: "bubble.left.fill")
                                     Text("Message")
@@ -391,7 +391,7 @@ struct HostCard: View {
             
             Spacer()
             
-            NavigationLink(destination: DirectChatView(recipient: user)) {
+            NavigationLink(destination: ChatView(recipient: user)) {
                 Image(systemName: "bubble.left.fill")
                     .font(.title3)
                     .foregroundColor(AppTheme.accent)

@@ -106,7 +106,7 @@ struct TradeActiveView: View {
                     if viewModel.trade.status != .completed {
                         // Secondary Actions
                         VStack(spacing: 16) {
-                            NavigationLink(destination: DirectChatView(recipient: viewModel.trade.requester.id == AuthService.shared.currentUserId ? viewModel.trade.provider : viewModel.trade.requester)) {
+                            NavigationLink(destination: ChatView(recipient: viewModel.trade.requester.id == AuthService.shared.currentUserId ? viewModel.trade.provider : viewModel.trade.requester)) {
                                 HStack {
                                     Image(systemName: "bubble.left.fill")
                                     Text("Message \(partnerName)")

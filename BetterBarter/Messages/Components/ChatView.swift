@@ -1,15 +1,35 @@
 import SwiftUI
 
-struct DirectChatView: View {
-    let recipient: User
+struct ChatView: View {
     @State private var viewModel: ChatViewModel
-    @State private var messageText = ""
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) var dismiss
+    
+    // Support either trade or recipient context
+    init(trade: Trade? = nil, recipient: User? = nil) {
+        if let trade = trade {
+            _viewModel = State(initialValue: ChatViewModel(trade: trade))
+        } else if let recipient = recipient {
+            _viewModel = State(initialValue: ChatViewModel(recipient: recipient))
+        } else {
+            // Default fallback for preview
+            _viewModel = State(initialValue: ChatViewModel(recipient: User.sampleNeighbors.first!))
+        }
+    }
 
-    init(recipient: User) {
-        self.recipient = recipient
-        _viewModel = State(initialValue: ChatViewModel(recipient: recipient))
+    private var partnerName: String {
+        if let trade = viewModel.trade {
+            let currentUserId = AuthService.shared.currentUserId ?? ""
+            return trade.requester.id == currentUserId ? trade.provider.name : trade.requester.name
+        }
+        return viewModel.recipient?.name ?? "Neighbor"
+    }
+
+    private var headerTitle: String {
+        if let trade = viewModel.trade {
+            return trade.listing.title
+        }
+        return partnerName
     }
 
     var body: some View {
@@ -22,30 +42,28 @@ struct DirectChatView: View {
                         .foregroundColor(AppTheme.accent)
                 }
                 
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .frame(width: 36, height: 36)
-                    .foregroundColor(.secondary)
+                AvatarView(name: partnerName, size: 36)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(recipient.name)
+                    Text(headerTitle)
                         .font(.headline)
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 8, height: 8)
-                        Text("Online")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                        .lineLimit(1)
+                    
+                    Text(viewModel.trade != nil ? "Trade Conversation" : "Direct Message")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
                 Spacer()
                 
-                Button(action: {}) {
-                    Image(systemName: "info.circle")
-                        .font(.title3)
-                        .foregroundColor(AppTheme.accent)
+                if let trade = viewModel.trade {
+                    TradeStatusBadge(status: trade.status)
+                } else {
+                    Button(action: {}) {
+                        Image(systemName: "info.circle")
+                            .font(.title3)
+                            .foregroundColor(AppTheme.accent)
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -65,7 +83,7 @@ struct DirectChatView: View {
                                 Text("No messages yet")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
-                                Text("Start a conversation with \(recipient.name)")
+                                Text("Start a conversation with \(partnerName)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -89,9 +107,11 @@ struct DirectChatView: View {
             }
 
             // Input Bar
-            MessageInputBar(text: $messageText) {
-                viewModel.sendMessage(content: messageText)
-                messageText = ""
+            MessageInputBar(text: $appState.tempMessageDraft) {
+                if !appState.tempMessageDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    viewModel.sendMessage(content: appState.tempMessageDraft)
+                    appState.tempMessageDraft = ""
+                }
             }
         }
         .navigationBarHidden(true)
@@ -101,6 +121,6 @@ struct DirectChatView: View {
 }
 
 #Preview {
-    DirectChatView(recipient: User.sampleNeighbors.first!)
+    ChatView(recipient: User.sampleNeighbors.first!)
         .environmentObject(AppState.shared)
 }

@@ -8,6 +8,8 @@ class AppState: ObservableObject {
     @Published var activeTab: ContentView.TabSelection = .home
     @Published var focusedListingId: String? = nil
     @Published var focusedTradeId: String? = nil
+    @Published var focusedChatId: String? = nil
+    @Published var tempMessageDraft: String = ""
     
     static let shared = AppState()
 }

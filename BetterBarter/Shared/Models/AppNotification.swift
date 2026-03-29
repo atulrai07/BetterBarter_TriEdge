@@ -14,6 +14,7 @@ struct AppNotification: Identifiable, Codable {
     // Add type if future notifications need distinction
     enum NotificationType: String, Codable {
         case tradeRequest
+        case message
     }
     let type: NotificationType
 }

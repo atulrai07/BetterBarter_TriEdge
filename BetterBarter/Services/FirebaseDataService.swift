@@ -208,7 +208,66 @@ class FirebaseDataService: DataServiceProtocol {
     }
     
     func sendMessage(chatId: String, message: Message) async throws {
+        // 1. Add the message to the central messages collection
         try db.collection("messages").document(chatId).collection("messages").addDocument(from: message)
+        
+        // 2. Create an automated notification for the recipient
+        let notificationId = "notif_\(UUID().uuidString)"
+        let notification = AppNotification(
+            id: notificationId,
+            recipientId: message.recipientID ?? "",
+            senderId: message.senderID,
+            senderName: message.senderName,
+            listingId: "", // Optional for simple messages
+            listingTitle: "", 
+            tradeId: message.tradeID ?? "",
+            isRead: false,
+            createdAt: Date(),
+            type: .message
+        )
+        try await createNotification(notification)
+        
+        // 3. Update ChatChannel metadata for inbox persistence (if it's not a trade)
+        if message.tradeID == nil {
+            try await updateChatChannel(chatId: chatId, lastMessage: message)
+        }
+    }
+    
+    // MARK: - Chat Channel Operations (for Inbox persistence)
+    
+    func getChatChannels() async throws -> [ChatChannel] {
+        guard let uid = Auth.auth().currentUser?.uid else { return [] }
+        let snapshot = try await db.collection("chat_channels")
+            .whereField("participantIds", arrayContains: uid)
+            .getDocuments()
+        return snapshot.documents.compactMap { try? $0.data(as: ChatChannel.self) }
+            .sorted { $0.timestamp > $1.timestamp }
+    }
+    
+    private func updateChatChannel(chatId: String, lastMessage: Message) async throws {
+        let channelRef = db.collection("chat_channels").document(chatId)
+        
+        // Fetch users to populate names/avatars if channel is new
+        let sender = try await getUser(id: lastMessage.senderID)
+        let recipient = try await getUser(id: lastMessage.recipientID ?? "unknown")
+        
+        let data: [String: Any] = [
+            "id": chatId,
+            "participantIds": [lastMessage.senderID, lastMessage.recipientID ?? ""],
+            "participantNames": [
+                lastMessage.senderID: sender.name,
+                (lastMessage.recipientID ?? "unknown"): recipient.name
+            ],
+            "participantAvatars": [
+                lastMessage.senderID: sender.avatarName,
+                (lastMessage.recipientID ?? "unknown"): recipient.avatarName
+            ],
+            "lastMessage": lastMessage.content,
+            "lastMessageSenderId": lastMessage.senderID,
+            "timestamp": lastMessage.timestamp
+        ]
+        
+        try await channelRef.setData(data, merge: true)
     }
     
     // MARK: - Real-time Listeners

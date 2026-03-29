@@ -128,6 +128,21 @@ struct TradeConfirmationView: View {
                     .cornerRadius(20)
                     .padding(.horizontal, 24)
 
+                    // Direct Messaging Option
+                    NavigationLink(destination: ChatView(recipient: trade.provider)) {
+                        HStack {
+                            Image(systemName: "bubble.left.fill")
+                            Text("Message \(trade.provider.name)")
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundStyle(AppTheme.accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppTheme.accent.opacity(0.1))
+                        .clipShape(Capsule())
+                    }
+                    .padding(.horizontal, 24)
+
                     // Disclaimer
                     Text("By confirming, you agree to the community guidelines. Credits will be held in escrow until completion.")
                         .font(.system(size: 12))

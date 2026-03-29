@@ -79,9 +79,16 @@ struct NotificationsView: View {
         
         // Allow dismiss animation to finish before switching tabs
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            appState.focusedListingId = notification.listingId
-            appState.focusedTradeId = notification.tradeId
-            appState.activeTab = .explore
+            if notification.type == .message {
+                // If it's a message, go to Messages tab
+                appState.focusedTradeId = notification.tradeId
+                appState.activeTab = .messages
+            } else {
+                // If it's a trade request, go to Explore (Listing Detail)
+                appState.focusedListingId = notification.listingId
+                appState.focusedTradeId = notification.tradeId
+                appState.activeTab = .explore
+            }
         }
     }
 }
@@ -97,9 +104,9 @@ struct NotificationRow: View {
                     .fill(AppTheme.accent.opacity(0.1))
                     .frame(width: 48, height: 48)
                 
-                Image(systemName: "arrow.right.arrow.left")
+                Image(systemName: notification.type == .message ? "bubble.left.fill" : "arrow.right.arrow.left")
                     .foregroundColor(AppTheme.accent)
-                    .font(.system(size: 20))
+                    .font(.system(size: notification.type == .message ? 18 : 20))
             }
             
             // Text
@@ -107,14 +114,16 @@ struct NotificationRow: View {
                 HStack(spacing: 4) {
                     Text(notification.senderName)
                         .fontWeight(.bold)
-                    Text("wants to trade:")
+                    Text(notification.type == .message ? "sent you a message" : "wants to trade:")
                 }
                 .font(.system(size: 15))
                 .foregroundColor(AppTheme.textPrimary)
                 
-                Text(notification.listingTitle)
-                    .font(.system(size: 14))
-                    .foregroundColor(AppTheme.textSecondary)
+                if notification.type == .tradeRequest {
+                    Text(notification.listingTitle)
+                        .font(.system(size: 14))
+                        .foregroundColor(AppTheme.textSecondary)
+                }
                 
                 Text(timeString(from: notification.createdAt))
                     .font(.system(size: 12))

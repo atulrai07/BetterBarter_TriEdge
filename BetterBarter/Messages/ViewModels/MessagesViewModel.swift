@@ -4,43 +4,49 @@ import Observation
 @Observable
 class MessagesViewModel {
     var trades: [Trade] = []
+    var channels: [ChatChannel] = []
     var messages: [String: [Message]] = [:]
     var isLoading: Bool = false
 
     init() {
-        fetchTrades()
+        fetchAllCommunication()
     }
 
-    func fetchTrades() {
+    func fetchAllCommunication() {
         isLoading = true
         Task {
+            // Fetch both in parallel
+            async let fetchedTrades = FirebaseDataService.shared.getTrades()
+            async let fetchedChannels = FirebaseDataService.shared.getChatChannels()
+            
             do {
-                let fetchedTrades = try await FirebaseDataService.shared.getTrades()
+                let (t, c) = try await (fetchedTrades, fetchedChannels)
                 await MainActor.run {
-                    self.trades = fetchedTrades
+                    self.trades = t
+                    self.channels = c
                     self.isLoading = false
                     
-                    // Fetch last message for each trade to provide inbox context
-                    for trade in fetchedTrades {
-                        self.fetchLastMessage(for: trade)
-                    }
+                    // Fetch context for trades
+                    for trade in t { self.fetchLastMessage(for: trade.id) }
+                    // Channels already have last message in metadata, but we can refresh
+                    for channel in c { self.fetchLastMessage(for: channel.id) }
                 }
             } catch {
-                print("DEBUG: Failed to fetch trades: \(error)")
+                print("DEBUG: Failed to fetch communication: \(error)")
                 await MainActor.run { self.isLoading = false }
             }
         }
     }
 
-    private func fetchLastMessage(for trade: Trade) {
+    private func fetchLastMessage(for id: String) {
         Task {
             do {
-                let tradeMessages = try await FirebaseDataService.shared.getMessages(for: trade.id)
+                let chatMessages = try await FirebaseDataService.shared.getMessages(for: id)
                 await MainActor.run {
-                    self.messages[trade.id] = tradeMessages
+                    self.messages[id] = chatMessages
                 }
             } catch {
-                print("DEBUG: Failed to fetch messages for trade \(trade.id): \(error)")
+                print("DEBUG: Failed to fetch messages for \(id): \(error)")
             }
         }
     }
@@ -54,7 +60,11 @@ class MessagesViewModel {
     }
 
     func lastMessage(for trade: Trade) -> Message? {
-        messages[trade.id]?.last
+        lastMessage(for: trade.id)
+    }
+
+    func lastMessage(for id: String) -> Message? {
+        messages[id]?.last
     }
 
     func sendMessage(_ content: String, for trade: Trade) {
@@ -85,14 +95,14 @@ class MessagesViewModel {
     func completeTrade(_ trade: Trade) {
         Task {
             try? await FirebaseDataService.shared.updateTradeStatus(trade.id, status: .completed)
-            fetchTrades()
+            fetchAllCommunication()
         }
     }
 
     func cancelTrade(_ trade: Trade) {
         Task {
             try? await FirebaseDataService.shared.updateTradeStatus(trade.id, status: .cancelled)
-            fetchTrades()
+            fetchAllCommunication()
         }
     }
 }

@@ -52,6 +52,52 @@ struct ConversationRow: View {
     }
 }
 
+// MARK: - Direct Message Row
+
+struct DirectMessageRow: View {
+    let channel: ChatChannel
+    let lastMessage: Message?
+    
+    private var currentUserId: String {
+        AuthService.shared.currentUserId ?? ""
+    }
+    
+    var body: some View {
+        HStack(spacing: AppTheme.spacingMD) {
+            AvatarView(name: channel.getPartnerName(currentUserId: currentUserId), size: 50)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(channel.getPartnerName(currentUserId: currentUserId))
+                        .font(.headline)
+                    
+                    Spacer()
+                    
+                    Text(channel.timestamp, style: .relative)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                
+                HStack {
+                    Text(lastMessage?.content ?? channel.lastMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+        .padding(AppTheme.spacingLG)
+        .cardStyle()
+    }
+}
+
+
 // MARK: - Chat Bubble
 
 struct ChatBubble: View {
