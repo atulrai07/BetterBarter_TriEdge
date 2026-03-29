@@ -150,10 +150,30 @@ struct TradeConfirmationView: View {
         .overlay(alignment: .bottom) {
             Button(action: {
                 Task {
-                    try? await FirebaseDataService.shared.createTrade(trade)
-                    await MainActor.run {
-                        appState.isTabBarHidden = true
-                        navigateToActiveTrade = true
+                    do {
+                        try await FirebaseDataService.shared.createTrade(trade)
+                        
+                        // Notify the listing owner (the provider in this case)
+                        let notification = AppNotification(
+                            id: UUID().uuidString,
+                            recipientId: trade.provider.id,
+                            senderId: trade.requester.id,
+                            senderName: trade.requester.name,
+                            listingId: trade.listing.id,
+                            listingTitle: trade.listing.title,
+                            tradeId: trade.id,
+                            isRead: false,
+                            createdAt: Date(),
+                            type: .tradeRequest
+                        )
+                        try? await FirebaseDataService.shared.createNotification(notification)
+                        
+                        await MainActor.run {
+                            appState.isTabBarHidden = true
+                            navigateToActiveTrade = true
+                        }
+                    } catch {
+                        print("Failed to create trade: \(error)")
                     }
                 }
             }) {

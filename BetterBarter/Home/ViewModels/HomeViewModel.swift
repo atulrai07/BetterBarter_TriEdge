@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreLocation
 import Combine
+import FirebaseFirestore
 
 @Observable
 class HomeViewModel {
@@ -8,13 +9,30 @@ class HomeViewModel {
     var isLoading: Bool = false
     var hiddenListingIDs: Set<String> = []
     var userLocation: CLLocation?
+    var unreadNotificationsCount: Int = 0
     
     private let locationManager = LocationManager()
     private var cancellables = Set<AnyCancellable>()
+    private var notificationListener: ListenerRegistration?
     
     init() {
         setupLocationUpdates()
         fetchListings()
+        setupNotificationListener()
+    }
+    
+    deinit {
+        notificationListener?.remove()
+    }
+    
+    private func setupNotificationListener() {
+        guard let currentUserId = AuthService.shared.currentUser?.id else { return }
+        
+        notificationListener = FirebaseDataService.shared.listenForNotifications(userId: currentUserId) { [weak self] notifications in
+            DispatchQueue.main.async {
+                self?.unreadNotificationsCount = notifications.filter { !$0.isRead }.count
+            }
+        }
     }
     
     private func setupLocationUpdates() {

@@ -2,9 +2,11 @@ import SwiftUI
 
 struct ExploreView: View {
     @State private var viewModel = ExploreViewModel()
+    @State private var navigationPath = NavigationPath()
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             VStack(spacing: 0) {
                 // Category Chips
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -66,6 +68,18 @@ struct ExploreView: View {
             .searchable(text: $viewModel.searchText, prompt: "Search skills, services, goods...")
             .navigationDestination(for: Listing.self) { listing in
                 ListingDetailView(listing: listing)
+            }
+        }
+        .onChange(of: appState.focusedListingId) { _, newValue in
+            if let id = newValue {
+                Task {
+                    if let listing = try? await FirebaseDataService.shared.getListing(id: id) {
+                        await MainActor.run {
+                            navigationPath.append(listing)
+                            appState.focusedListingId = nil // Consume link
+                        }
+                    }
+                }
             }
         }
     }

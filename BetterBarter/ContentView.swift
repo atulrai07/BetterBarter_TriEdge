@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var selectedTab: TabSelection = .home
+    @EnvironmentObject var appState: AppState
 
     enum TabSelection: String, CaseIterable {
         case home = "Home"
@@ -20,7 +20,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: $appState.activeTab) {
             Tab("Home", systemImage: TabSelection.home.icon, value: .home) {
                 HomeView()
             }
@@ -31,7 +31,7 @@ struct ContentView: View {
                 MessagesView()
             }
             Tab("Post", systemImage: TabSelection.create.icon, value: .create, role: .search) {
-                CreatePostView(selectedTab: $selectedTab)
+                CreatePostView(selectedTab: $appState.activeTab)
             }
         }
         .tint(AppTheme.accent)

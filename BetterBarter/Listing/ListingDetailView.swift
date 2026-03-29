@@ -5,16 +5,17 @@ import FirebaseFirestore
 
 struct ListingDetailView: View {
     let listing: Listing
-    @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) var dismiss
 
     @State private var position: MapCameraPosition = .region(MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
-        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+        span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
     ))
-    
     @State private var existingTrade: Trade? = nil
-    @State private var isLoadingTrade: Bool = true
+    @State private var isLoadingTrade = true
+    @State private var isAcceptingTrade = false
+    @State private var navigateToActiveTrade = false
     
     // Construct a User from the listing's denormalized data
     private var listingOwner: User {
@@ -178,7 +179,20 @@ struct ListingDetailView: View {
                 ))
             }
             Task {
-                if let uid = AuthService.shared.currentUserId {
+                if let focusedId = appState.focusedTradeId {
+                    // Deep linked from notification
+                    if let doc = try? await Firestore.firestore().collection("trades").document(focusedId).getDocument(),
+                       let trade = try? doc.data(as: Trade.self) {
+                        await MainActor.run {
+                            self.existingTrade = trade
+                            self.isLoadingTrade = false
+                            // Consume the deep link ID here if appropriate, but keep it for UI rendering
+                        }
+                    } else {
+                        await MainActor.run { self.isLoadingTrade = false }
+                    }
+                } else if let uid = AuthService.shared.currentUserId {
+                    // Normal view
                     let snapshot = try? await Firestore.firestore().collection("trades")
                         .whereField("listing.id", isEqualTo: listing.id)
                         .whereField("requester.id", isEqualTo: uid)
@@ -199,41 +213,124 @@ struct ListingDetailView: View {
         .onDisappear {
         }
         .overlay(alignment: .bottom) {
+            // Navigation destination for owner accepting trade
+            if let trade = existingTrade {
+                NavigationLink(destination: TradeActiveView(trade: trade), isActive: $navigateToActiveTrade) {
+                    EmptyView()
+                }
+            }
+
             // Floating Bottom Button
-            if let currentUser = AuthService.shared.currentUser, currentUser.id != listing.ownerID {
-                if isLoadingTrade {
-                    HStack {
-                        ProgressView()
-                            .tint(.white)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 64)
-                    .background(AppTheme.accent.opacity(0.5))
-                    .clipShape(Capsule())
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 34)
-                } else if let trade = existingTrade {
-                    if trade.status == .completed {
-                        HStack {
-                            Text("Trade Completed")
-                                .font(.system(size: 18, weight: .bold))
-                            Spacer()
-                            Image(systemName: "checkmark.seal.fill")
+            if let currentUser = AuthService.shared.currentUser {
+                if currentUser.id == listing.ownerID {
+                    // --- OWNER VIEW ---
+                    if let trade = existingTrade, trade.status == .pending {
+                        HStack(spacing: 12) {
+                            NavigationLink(destination: DirectChatView(recipient: trade.requester)) {
+                                HStack {
+                                    Image(systemName: "bubble.left.fill")
+                                    Text("Message")
+                                }
+                                .font(.system(size: 16, weight: .bold))
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.white)
+                                .foregroundColor(AppTheme.textPrimary)
+                                .clipShape(Capsule())
+                                .shadow(color: .black.opacity(0.1), radius: 10, y: 5)
+                            }
+                            
+                            Button(action: {
+                                isAcceptingTrade = true
+                                Task {
+                                    var updatedTrade = trade
+                                    updatedTrade.status = .active
+                                    try? await FirebaseDataService.shared.createTrade(updatedTrade)
+                                    await MainActor.run {
+                                        existingTrade = updatedTrade
+                                        isAcceptingTrade = false
+                                        navigateToActiveTrade = true
+                                    }
+                                }
+                            }) {
+                                HStack {
+                                    if isAcceptingTrade {
+                                        ProgressView().tint(.white)
+                                    } else {
+                                        Text("Accept")
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                                .font(.system(size: 16, weight: .bold))
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(AppTheme.accent)
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                                .shadow(color: AppTheme.accent.opacity(0.3), radius: 10, y: 5)
+                            }
                         }
                         .padding(.horizontal, 24)
+                        .padding(.bottom, 34)
+                    }
+                } else {
+                    // --- NON-OWNER VIEW ---
+                    if isLoadingTrade {
+                        HStack {
+                            ProgressView()
+                                .tint(.white)
+                        }
+                        .frame(maxWidth: .infinity)
                         .frame(height: 64)
-                        .background(Color.green)
-                        .foregroundColor(.white)
+                        .background(AppTheme.accent.opacity(0.5))
                         .clipShape(Capsule())
                         .padding(.horizontal, 24)
                         .padding(.bottom, 34)
-                    } else {
-                        NavigationLink(destination: TradeActiveView(trade: trade)) {
+                    } else if let trade = existingTrade {
+                        if trade.status == .completed {
                             HStack {
-                                Text("Resume Trade")
+                                Text("Trade Completed")
                                     .font(.system(size: 18, weight: .bold))
                                 Spacer()
-                                Image(systemName: "arrow.right.circle.fill")
+                                Image(systemName: "checkmark.seal.fill")
+                            }
+                            .padding(.horizontal, 24)
+                            .frame(height: 64)
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .clipShape(Capsule())
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 34)
+                        } else {
+                            NavigationLink(destination: TradeActiveView(trade: trade)) {
+                                HStack {
+                                    Text("Resume Trade")
+                                        .font(.system(size: 18, weight: .bold))
+                                    Spacer()
+                                    Image(systemName: "arrow.right.circle.fill")
+                                        .font(.system(size: 18, weight: .bold))
+                                }
+                                .padding(.horizontal, 24)
+                                .frame(height: 64)
+                                .background(AppTheme.accent)
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                                .shadow(color: AppTheme.accent.opacity(0.3), radius: 15, x: 0, y: 8)
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 34)
+                        }
+                    } else {
+                        let isOffer = listing.type == .offer
+                        let tradeRequester = isOffer ? currentUser : listingOwner
+                        let tradeProvider = isOffer ? listingOwner : currentUser
+                        
+                        NavigationLink(destination: TradeConfirmationView(trade: Trade(id: "trade_\(UUID().uuidString)", listing: listing, requester: tradeRequester, provider: tradeProvider, status: .pending, createdAt: Date(), messages: []))) {
+                            HStack {
+                                Text("Start Trade")
+                                    .font(.system(size: 18, weight: .bold))
+                                Spacer()
+                                Image(systemName: "arrow.right")
                                     .font(.system(size: 18, weight: .bold))
                             }
                             .padding(.horizontal, 24)
@@ -246,28 +343,6 @@ struct ListingDetailView: View {
                         .padding(.horizontal, 24)
                         .padding(.bottom, 34)
                     }
-                } else {
-                    let isOffer = listing.type == .offer
-                    let tradeRequester = isOffer ? currentUser : listingOwner
-                    let tradeProvider = isOffer ? listingOwner : currentUser
-                    
-                    NavigationLink(destination: TradeConfirmationView(trade: Trade(id: "trade_\(UUID().uuidString)", listing: listing, requester: tradeRequester, provider: tradeProvider, status: .pending, createdAt: Date(), messages: []))) {
-                        HStack {
-                            Text("Start Trade")
-                                .font(.system(size: 18, weight: .bold))
-                            Spacer()
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 18, weight: .bold))
-                        }
-                        .padding(.horizontal, 24)
-                        .frame(height: 64)
-                        .background(AppTheme.accent)
-                        .foregroundColor(.white)
-                        .clipShape(Capsule())
-                        .shadow(color: AppTheme.accent.opacity(0.3), radius: 15, x: 0, y: 8)
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 34)
                 }
             }
         }

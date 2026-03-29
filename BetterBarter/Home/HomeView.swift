@@ -9,6 +9,7 @@ struct HomeView: View {
     @State private var showProfile = false
     @State private var listingToRemove: Listing? = nil
     @State private var showRemoveAlert = false
+    @State private var showNotifications = false
 
     var body: some View {
         NavigationStack {
@@ -29,11 +30,19 @@ struct HomeView: View {
 
                     HStack(spacing: AppTheme.spacingMD) {
                         Button {
-                            // Notifications
+                            showNotifications = true
                         } label: {
                             Image(systemName: "bell.fill")
                                 .font(.title3)
                                 .foregroundStyle(.primary)
+                                .overlay(alignment: .topTrailing) {
+                                    if viewModel.unreadNotificationsCount > 0 {
+                                        Circle()
+                                            .fill(AppTheme.error)
+                                            .frame(width: 8, height: 8)
+                                            .offset(x: 2, y: -2)
+                                    }
+                                }
                         }
 
                         Button {
@@ -185,6 +194,10 @@ struct HomeView: View {
                 }
             } message: {
                 Text("Are you sure you want to remove this listing? This action cannot be undone.")
+            }
+            .sheet(isPresented: $showNotifications) {
+                NotificationsView()
+                    .presentationDragIndicator(.visible)
             }
         }
     }

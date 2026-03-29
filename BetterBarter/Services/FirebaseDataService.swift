@@ -42,6 +42,10 @@ class FirebaseDataService: DataServiceProtocol {
         try await db.collection("listings").document(listingId).delete()
     }
     
+    func getListing(id: String) async throws -> Listing {
+        return try await db.collection("listings").document(id).getDocument(as: Listing.self)
+    }
+    
     func uploadListingImage(_ imageData: Data, listingId: String) async throws -> String {
         let storageRef = Storage.storage().reference().child("listing_images/\(listingId).jpg")
         let metadata = StorageMetadata()
@@ -52,6 +56,10 @@ class FirebaseDataService: DataServiceProtocol {
     }
     
     // MARK: - Trade Operations
+    
+    func getTrade(id: String) async throws -> Trade {
+        return try await db.collection("trades").document(id).getDocument(as: Trade.self)
+    }
     
     func getTrades() async throws -> [Trade] {
         guard let uid = Auth.auth().currentUser?.uid else { return [] }
@@ -226,6 +234,37 @@ class FirebaseDataService: DataServiceProtocol {
     func updateTrustScore(userId: String, newScore: Double) async throws {
         try await db.collection("users").document(userId).updateData([
             "trustScore": newScore
+        ])
+    }
+    
+    // MARK: - Notifications
+    
+    func createNotification(_ notification: AppNotification) async throws {
+        try db.collection("notifications").document(notification.id).setData(from: notification)
+    }
+    
+    func getNotifications(userId: String) async throws -> [AppNotification] {
+        let snapshot = try await db.collection("notifications")
+            .whereField("recipientId", isEqualTo: userId)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+        return snapshot.documents.compactMap { try? $0.data(as: AppNotification.self) }
+    }
+    
+    func listenForNotifications(userId: String, completion: @escaping ([AppNotification]) -> Void) -> ListenerRegistration {
+        return db.collection("notifications")
+            .whereField("recipientId", isEqualTo: userId)
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { snapshot, error in
+                guard let documents = snapshot?.documents else { return }
+                let notifications = documents.compactMap { try? $0.data(as: AppNotification.self) }
+                completion(notifications)
+            }
+    }
+    
+    func markNotificationRead(id: String) async throws {
+        try await db.collection("notifications").document(id).updateData([
+            "isRead": true
         ])
     }
 }
