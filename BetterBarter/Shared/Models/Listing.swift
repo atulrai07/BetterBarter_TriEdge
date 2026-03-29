@@ -18,6 +18,15 @@ struct Listing: Identifiable, Hashable, Codable {
     var longitude: Double?
     var isCompleted: Bool? = false
 
+    var shortLocation: String {
+        let components = distance.components(separatedBy: ",")
+        if components.count >= 2 {
+            let lastTwo = components.suffix(2).map { $0.trimmingCharacters(in: .whitespaces) }
+            return lastTwo.joined(separator: ", ")
+        }
+        return distance
+    }
+
     // MARK: Category
 
     enum Category: String, CaseIterable, Hashable, Codable {

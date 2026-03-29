@@ -32,9 +32,9 @@ struct ListingDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
-                // Header Image with Overlay Buttons
+                // Header Image
                 ZStack(alignment: .top) {
                     // Image Placeholder
                     RoundedRectangle(cornerRadius: 0)
@@ -45,31 +45,6 @@ struct ListingDetailView: View {
                                 .font(.system(size: 80))
                                 .foregroundColor(AppTheme.accent.opacity(0.2))
                         )
-                    
-                    // Overlay Buttons
-                    HStack {
-                        Button(action: { dismiss() }) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(12)
-                                .background(Color.black.opacity(0.3))
-                                .clipShape(Circle())
-                        }
-                        
-                        Spacer()
-                        
-                        Button(action: {}) {
-                            Image(systemName: "ellipsis")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(12)
-                                .background(Color.black.opacity(0.3))
-                                .clipShape(Circle())
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 60) // Adjust for safe area
                 }
 
                 VStack(alignment: .leading, spacing: 24) {
@@ -102,7 +77,7 @@ struct ListingDetailView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "location.fill")
                                 .font(.system(size: 12))
-                            Text("\(listing.distance) away")
+                            Text("\(listing.shortLocation) away")
                                 .font(.system(size: 14, weight: .medium))
                         }
                         .foregroundColor(AppTheme.textSecondary)
@@ -185,13 +160,10 @@ struct ListingDetailView: View {
                 .offset(y: -30)
             }
         }
+        .scrollIndicators(.hidden)
+        .background(AppTheme.secondaryBackground.ignoresSafeArea())
         .ignoresSafeArea(edges: .top)
-        .toolbar(.hidden, for: .tabBar)
-        .navigationBarHidden(true)
         .onAppear {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                appState.isTabBarHidden = true
-            }
             if let lat = listing.latitude, let lon = listing.longitude {
                 position = .region(MKCoordinateRegion(
                     center: CLLocationCoordinate2D(latitude: lat, longitude: lon),
@@ -218,9 +190,6 @@ struct ListingDetailView: View {
             }
         }
         .onDisappear {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                appState.isTabBarHidden = false
-            }
         }
         .overlay(alignment: .bottom) {
             // Floating Bottom Button

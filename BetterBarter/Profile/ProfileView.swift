@@ -203,7 +203,6 @@ struct ProfileView: View {
                 }
             }
             .background(AppTheme.background)
-            .navigationTitle("Profile")
             .navigationDestination(for: Listing.self) { listing in
                 ListingDetailView(listing: listing)
             }

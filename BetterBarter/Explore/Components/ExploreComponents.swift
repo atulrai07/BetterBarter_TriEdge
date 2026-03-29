@@ -60,8 +60,9 @@ struct ExploreListingCard: View {
                         .foregroundStyle(.secondary)
                     Text("·")
                         .foregroundStyle(.tertiary)
-                    Label(listing.distance, systemImage: "location.fill")
+                    Label(listing.shortLocation, systemImage: "location.fill")
                         .font(.caption)
+                        .lineLimit(1)
                         .foregroundStyle(.tertiary)
                 }
             }

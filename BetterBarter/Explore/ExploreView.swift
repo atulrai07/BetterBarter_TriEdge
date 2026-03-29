@@ -23,6 +23,7 @@ struct ExploreView: View {
                     .padding(.horizontal)
                     .padding(.vertical, AppTheme.spacingSM)
                 }
+                .padding(.bottom,8)
 
                 // Native iOS Segmented Control
                 Picker("Listing Type", selection: $viewModel.selectedSegment) {

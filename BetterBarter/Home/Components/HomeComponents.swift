@@ -164,8 +164,9 @@ struct NearbyRequestCard: View {
 
                 Spacer()
 
-                Text(listing.distance)
+                Text(listing.shortLocation)
                     .font(.caption2)
+                    .lineLimit(1)
                     .foregroundStyle(.tertiary)
             }
 
@@ -227,9 +228,10 @@ struct NearbyOfferCard: View {
                 VStack {
                     HStack {
                         Spacer()
-                        Text(listing.distance)
+                        Text(listing.shortLocation)
                             .font(.caption2)
                             .fontWeight(.medium)
+                            .lineLimit(1)
                             .foregroundStyle(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)

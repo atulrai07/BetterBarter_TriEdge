@@ -6,6 +6,7 @@ struct HomeView: View {
     @State private var showNearbyOffers = false
     @State private var showCreatePost = false
     @State private var createPostInitialType: Listing.ListingType = .offer
+    @State private var showProfile = false
 
     var body: some View {
         NavigationStack {
@@ -33,7 +34,11 @@ struct HomeView: View {
                                 .foregroundStyle(.primary)
                         }
 
-                        AvatarView(name: viewModel.userName, size: 40)
+                        Button {
+                            showProfile = true
+                        } label: {
+                            AvatarView(name: viewModel.userName, size: 40)
+                        }
                     }
                 }
                 .padding(.horizontal)
@@ -146,6 +151,9 @@ struct HomeView: View {
                 Task { await viewModel.refresh() }
             }) {
                 CreatePostView(initialType: createPostInitialType)
+            }
+            .sheet(isPresented: $showProfile) {
+                ProfileView()
             }
         }
     }
