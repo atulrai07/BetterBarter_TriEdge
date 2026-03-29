@@ -92,23 +92,38 @@ struct MessageInputBar: View {
 
     var body: some View {
         HStack(spacing: AppTheme.spacingMD) {
-            TextField("Type a message...", text: $text, axis: .vertical)
-                .textFieldStyle(.plain)
-                .lineLimit(1...4)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color(.tertiarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            ZStack(alignment: .leading) {
+                if text.isEmpty {
+                    Text("Type a message")
+                        .font(.body)
+                        .foregroundStyle(.secondary.opacity(0.6))
+                        .padding(.leading, 14)
+                }
+                
+                TextField("", text: $text, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(1...4)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color(.tertiarySystemGroupedBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
 
             Button {
-                onSend()
+                if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    onSend()
+                } else {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
             } label: {
-                Image(systemName: "arrow.up.circle.fill")
+                Image(systemName: text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty 
+                      ? "xmark.circle.fill" : "arrow.up.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    .foregroundStyle(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty 
                                     ? Color.gray : AppTheme.accent)
+                    .contentTransition(.symbolEffect(.replace))
             }
-            .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: text.isEmpty)
         }
         .padding(.horizontal)
         .padding(.vertical, 8)

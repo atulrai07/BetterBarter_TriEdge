@@ -1,48 +1,38 @@
 import SwiftUI
 
 struct SplashScreen: View {
+    @EnvironmentObject var appState: AppState
     @State private var isAnimating = false
-    
+
     var body: some View {
         ZStack {
-            AppTheme.accent.ignoresSafeArea()
-            
-            VStack(spacing: 24) {
-                Spacer()
-                
-                // Logo
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.2))
-                        .frame(width: 140, height: 140)
-                        .scaleEffect(isAnimating ? 1.1 : 0.9)
-                    
-                    Image(systemName: "leaf.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.white)
-                }
-                
-                VStack(spacing: 8) {
-                    Text("BetterBarter")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    
-                    Text("Neighborhood Trust Marketplace")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
-                }
-                
-                Spacer()
-                
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(1.2)
-                    .padding(.bottom, 50)
+            // Background color matching Home Screen top card
+            Color(red: 24/255, green: 164/255, blue: 160/255)
+            .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                // Logo image
+                Image("logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 150, height: 150)
+                    .scaleEffect(isAnimating ? 1.05 : 0.95)
+                    .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: isAnimating)
+
+
+                // App name
+                Text("Better Barter")
+                    .font(.title.weight(.bold))
+                    .foregroundStyle(.white)
+                    .tracking(0.5)
             }
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                isAnimating = true
+            isAnimating = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    appState.isShowingSplash = false
+                }
             }
         }
     }
@@ -50,4 +40,5 @@ struct SplashScreen: View {
 
 #Preview {
     SplashScreen()
+        .environmentObject(AppState.shared)
 }

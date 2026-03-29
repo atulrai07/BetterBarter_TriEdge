@@ -89,30 +89,14 @@ struct DirectChatView: View {
             }
 
             // Input Bar
-            HStack(spacing: 12) {
-                TextField("Message...", text: $messageText)
-                    .padding(10)
-                    .background(Color(.systemGray6))
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                
-                Button(action: {
-                    if !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        viewModel.sendMessage(content: messageText)
-                        messageText = ""
-                    }
-                }) {
-                    Image(systemName: "paperplane.fill")
-                        .font(.title3)
-                        .foregroundColor(AppTheme.accent)
-                }
-                .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            MessageInputBar(text: $messageText) {
+                viewModel.sendMessage(content: messageText)
+                messageText = ""
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground))
         }
         .navigationBarHidden(true)
         .background(Color(.systemGroupedBackground))
+        .hideKeyboardWhenTappedAround()
     }
 }
 
