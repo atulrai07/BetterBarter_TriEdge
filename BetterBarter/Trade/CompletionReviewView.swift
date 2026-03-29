@@ -22,7 +22,6 @@ struct CompletionReviewView: View {
                 Text("Review Trade")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                 Spacer()
-                Color.clear.frame(width: 20)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
@@ -140,22 +139,20 @@ struct CompletionReviewView: View {
                         try? await FirebaseDataService.shared.createReview(newReview)
                         
                         // 2. Finalize the trade status
+                        // Note: confirmTrade automatically triggers trust score and credit updates
                         try? await FirebaseDataService.shared.confirmTrade(trade.id, byUser: currentUserId)
                         
-                        // 3. Update partner trust score (simplified logic for demo)
-                        let newTrustScore = min(100, partner.trustScore + (Double(rating) * 0.5))
-                        try? await FirebaseDataService.shared.updateTrustScore(userId: partner.id, newScore: newTrustScore)
-                        
                         await MainActor.run {
+                            appState.focusedListingId = nil
+                            appState.focusedTradeId = nil
+                            appState.isTabBarHidden = false
+                            appState.activeTab = .home // Go to home screen
                             dismiss()
                         }
                     }
                 }) {
                     HStack {
-                        Text("Confirm & Submit Review")
-                            .font(.system(size: 18, weight: .bold))
-                        Spacer()
-                        Image(systemName: "arrow.right")
+                        Text("Submit Review")
                             .font(.system(size: 18, weight: .bold))
                     }
                     .padding(.horizontal, 24)

@@ -149,23 +149,40 @@ class FirebaseDataService: DataServiceProtocol {
     }
     
     func recalculateTrustScore(userId: String) async throws {
-        // Fetch all reviews and completed trades to calculate a better trust score
+        // Fetch all reviews
         let reviews = try await getReviews(for: userId)
-        let tradesSnap = try await db.collection("trades")
-            .whereField("status", isEqualTo: "completed")
-            .getDocuments()
         
-        // Filter trades manually because Firestore doesn't support complex OR queries easily here
-        let completedTrades = tradesSnap.documents.compactMap { try? $0.data(as: Trade.self) }
+        // Fetch ALL trades for accurate completion/cancellation rates
+        let tradesSnap = try await db.collection("trades").getDocuments()
+        let allTrades = tradesSnap.documents.compactMap { try? $0.data(as: Trade.self) }
             .filter { $0.provider.id == userId || $0.requester.id == userId }
         
-        // Formula: 50 + (AvgRating/5.0 * 30) + (CompletedTrades * 2) - (CancelledTrades * 5)
-        let avgRating = reviews.isEmpty ? 0 : Double(reviews.reduce(0) { $0 + $1.rating }) / Double(reviews.count)
-        let ratingComponent = (avgRating / 5.0) * 30.0
-        let completedComponent = Double(completedTrades.count) * 2.0
+        let completedTrades = allTrades.filter { $0.status == .completed }.count
+        let cancelledTrades = allTrades.filter { $0.status == .cancelled }.count
+        let totalTradesCount = allTrades.count
         
-        // We'll calculate a placeholder for cancelled trades for now (can be added later)
-        let newTrustScore = min(100.0, max(0.0, 50.0 + ratingComponent + completedComponent))
+        let completionRate: Double
+        let cancelRate: Double
+        
+        if totalTradesCount == 0 {
+            completionRate = 1.0 // 100% completion rate for new users
+            cancelRate = 0.0
+        } else {
+            completionRate = Double(completedTrades) / Double(totalTradesCount)
+            cancelRate = Double(cancelledTrades) / Double(totalTradesCount)
+        }
+        
+        let avgRating = reviews.isEmpty ? 5.0 : Double(reviews.reduce(0) { $0 + $1.rating }) / Double(reviews.count)
+        
+        // Trust Score Rule:
+        // (Completion Rate × 50%) + (Average Rating × 30%) - (Cancellation Penalty × 20%)
+        let completionPoints = (completionRate * 100.0) * 0.50
+        let ratingPoints = (avgRating / 5.0 * 100.0) * 0.30
+        let cancellationPenalty = (cancelRate * 100.0) * 0.20
+        
+        // Add 20 base points so that a perfect user gets 100% (50 + 30 + 20)
+        let exactScore = 20.0 + completionPoints + ratingPoints - cancellationPenalty
+        let newTrustScore = min(100.0, max(0.0, exactScore))
         
         try await updateTrustScore(userId: userId, newScore: newTrustScore)
     }

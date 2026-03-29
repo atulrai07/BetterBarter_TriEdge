@@ -206,6 +206,11 @@ struct ProfileView: View {
             .navigationDestination(for: Listing.self) { listing in
                 ListingDetailView(listing: listing)
             }
+            .onAppear {
+                viewModel.fetchUserData()
+                viewModel.fetchReviews()
+                viewModel.fetchActiveListings()
+            }
             .alert("Edit Name", isPresented: $showingEditName) {
                 TextField("New Name", text: $nameToEdit)
                 Button("Cancel", role: .cancel) { }

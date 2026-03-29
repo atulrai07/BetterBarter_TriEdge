@@ -16,6 +16,7 @@ class ProfileViewModel {
         self.reviews = []
         self.isLoading = false
         
+        fetchUserData()
         fetchActiveListings()
         fetchReviews()
     }
@@ -25,6 +26,19 @@ class ProfileViewModel {
             return authUser
         }
         return _internalUser
+    }
+    
+    func fetchUserData() {
+        Task {
+            do {
+                let updatedUser = try await FirebaseDataService.shared.getUser(id: _internalUser.id)
+                await MainActor.run {
+                    self._internalUser = updatedUser
+                }
+            } catch {
+                print("DEBUG: Failed to refresh user data: \(error)")
+            }
+        }
     }
     
     func fetchActiveListings() {
