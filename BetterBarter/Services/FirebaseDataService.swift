@@ -1,6 +1,7 @@
 import Foundation
 import FirebaseFirestore
 import FirebaseAuth
+import FirebaseStorage
 import Combine
 
 class FirebaseDataService: DataServiceProtocol {
@@ -35,6 +36,19 @@ class FirebaseDataService: DataServiceProtocol {
     
     func createListing(_ listing: Listing) async throws {
         try db.collection("listings").document(listing.id).setData(from: listing)
+    }
+    
+    func deleteListing(_ listingId: String) async throws {
+        try await db.collection("listings").document(listingId).delete()
+    }
+    
+    func uploadListingImage(_ imageData: Data, listingId: String) async throws -> String {
+        let storageRef = Storage.storage().reference().child("listing_images/\(listingId).jpg")
+        let metadata = StorageMetadata()
+        metadata.contentType = "image/jpeg"
+        let _ = try await storageRef.putDataAsync(imageData, metadata: metadata)
+        let downloadURL = try await storageRef.downloadURL()
+        return downloadURL.absoluteString
     }
     
     // MARK: - Trade Operations

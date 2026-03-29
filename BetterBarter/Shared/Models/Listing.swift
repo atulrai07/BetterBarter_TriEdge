@@ -17,6 +17,7 @@ struct Listing: Identifiable, Hashable, Codable {
     var latitude: Double?
     var longitude: Double?
     var isCompleted: Bool? = false
+    var imageUrl: String?
 
     var shortLocation: String {
         let components = distance.components(separatedBy: ",")
@@ -56,6 +57,22 @@ struct Listing: Identifiable, Hashable, Codable {
     enum ListingType: String, CaseIterable, Hashable, Codable {
         case request = "Request"
         case offer = "Offer"
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let rawValue = try container.decode(String.self)
+            // Case-insensitive matching for robustness with Firestore data
+            if rawValue.lowercased() == "request" {
+                self = .request
+            } else if rawValue.lowercased() == "offer" {
+                self = .offer
+            } else {
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(codingPath: decoder.codingPath,
+                                          debugDescription: "Unknown ListingType: \(rawValue)")
+                )
+            }
+        }
     }
 }
 

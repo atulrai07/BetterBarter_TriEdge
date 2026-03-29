@@ -7,6 +7,8 @@ struct HomeView: View {
     @State private var showCreatePost = false
     @State private var createPostInitialType: Listing.ListingType = .offer
     @State private var showProfile = false
+    @State private var listingToRemove: Listing? = nil
+    @State private var showRemoveAlert = false
 
     var body: some View {
         NavigationStack {
@@ -93,6 +95,14 @@ struct HomeView: View {
                                                 NearbyRequestCard(listing: listing)
                                             }
                                             .buttonStyle(.plain)
+                                            .contextMenu {
+                                                Button(role: .destructive) {
+                                                    listingToRemove = listing
+                                                    showRemoveAlert = true
+                                                } label: {
+                                                    Label("Remove", systemImage: "trash")
+                                                }
+                                            }
                                         }
                                     }
                                     .padding(.horizontal)
@@ -115,6 +125,14 @@ struct HomeView: View {
                                                 NearbyOfferCard(listing: listing)
                                             }
                                             .buttonStyle(.plain)
+                                            .contextMenu {
+                                                Button(role: .destructive) {
+                                                    listingToRemove = listing
+                                                    showRemoveAlert = true
+                                                } label: {
+                                                    Label("Remove", systemImage: "trash")
+                                                }
+                                            }
                                         }
                                     }
                                     .padding(.horizontal)
@@ -154,6 +172,19 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showProfile) {
                 ProfileView()
+            }
+            .alert("Remove Listing", isPresented: $showRemoveAlert) {
+                Button("Cancel", role: .cancel) {
+                    listingToRemove = nil
+                }
+                Button("Remove", role: .destructive) {
+                    if let listing = listingToRemove {
+                        viewModel.removeListing(listing)
+                        listingToRemove = nil
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to remove this listing? This action cannot be undone.")
             }
         }
     }

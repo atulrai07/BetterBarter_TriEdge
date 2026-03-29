@@ -41,10 +41,17 @@ struct ListingDetailView: View {
                         .fill(Color(.systemGray6))
                         .frame(height: 320)
                         .overlay(
-                            Image(systemName: listing.iconName)
-                                .font(.system(size: 80))
-                                .foregroundColor(AppTheme.accent.opacity(0.2))
+                            Group {
+                                if let imageUrl = listing.imageUrl {
+                                    ListingImageView(imageUrl: imageUrl)
+                                } else {
+                                    Image(systemName: listing.iconName)
+                                        .font(.system(size: 80))
+                                        .foregroundColor(AppTheme.accent.opacity(0.2))
+                                }
+                            }
                         )
+                        .clipped()
                 }
 
                 VStack(alignment: .leading, spacing: 24) {

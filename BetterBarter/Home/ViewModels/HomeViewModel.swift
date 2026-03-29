@@ -4,6 +4,7 @@ import SwiftUI
 class HomeViewModel {
     var nearbyListings: [Listing] = []
     var isLoading: Bool = false
+    var hiddenListingIDs: Set<String> = []
     
     init() {
         fetchListings()
@@ -36,6 +37,23 @@ class HomeViewModel {
         }
     }
     
+    func removeListing(_ listing: Listing) {
+        Task {
+            do {
+                try await FirebaseDataService.shared.deleteListing(listing.id)
+                await MainActor.run {
+                    self.nearbyListings.removeAll { $0.id == listing.id }
+                }
+            } catch {
+                print("DEBUG: Failed to delete listing: \(error)")
+                // If delete fails on server, still hide it locally
+                await MainActor.run {
+                    self.hiddenListingIDs.insert(listing.id)
+                }
+            }
+        }
+    }
+    
     private var currentUser: User {
         AuthService.shared.currentUser ?? User.current
     }
@@ -46,11 +64,15 @@ class HomeViewModel {
     var userTier: AppTheme.TrustTier { currentUser.tier }
 
     var nearbyRequests: [Listing] {
-        nearbyListings.filter { $0.type == .request }
+        let filtered = nearbyListings.filter { $0.type == .request && !hiddenListingIDs.contains($0.id) }
+        print("DEBUG: nearbyRequests count: \(filtered.count), titles: \(filtered.map { "\($0.title) (type: \($0.type.rawValue))" })")
+        return filtered
     }
 
     var nearbyOffers: [Listing] {
-        nearbyListings.filter { $0.type == .offer }
+        let filtered = nearbyListings.filter { $0.type == .offer && !hiddenListingIDs.contains($0.id) }
+        print("DEBUG: nearbyOffers count: \(filtered.count), titles: \(filtered.map { "\($0.title) (type: \($0.type.rawValue))" })")
+        return filtered
     }
 
     var greeting: String {

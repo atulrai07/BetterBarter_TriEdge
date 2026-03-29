@@ -13,9 +13,26 @@ struct CreatePostView: View {
     @State private var isPosting = false
     @StateObject private var locationManager = LocationManager()
     
-    init(initialType: Listing.ListingType? = nil) {
+    // Photo Attachment State
+    @State private var selectedImage: UIImage?
+    @State private var showImageSourceDialog = false
+    @State private var showImagePicker = false
+    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
+    
+    // Tab navigation binding (used when presented as a tab)
+    @Binding var selectedTab: ContentView.TabSelection
+    private var isTabMode: Bool
+    
+    init(initialType: Listing.ListingType? = nil, selectedTab: Binding<ContentView.TabSelection>? = nil) {
         if let type = initialType {
             _listingType = State(initialValue: type)
+        }
+        if let tab = selectedTab {
+            _selectedTab = tab
+            isTabMode = true
+        } else {
+            _selectedTab = .constant(.create)
+            isTabMode = false
         }
     }
 
@@ -37,18 +54,42 @@ struct CreatePostView: View {
 
                         // 2. Media Section
                         CreateSection(title: "PHOTO") {
-                            Button(action: {}) {
-                                VStack(spacing: 8) {
-                                    Image(systemName: "camera.fill")
-                                        .font(.system(size: 24))
-                                    Text("Add Photos")
-                                        .font(.system(size: 13, weight: .semibold))
+                            Button {
+                                showImageSourceDialog = true
+                            } label: {
+                                if let image = selectedImage {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 160)
+                                        .cornerRadius(12)
+                                        .overlay(alignment: .topTrailing) {
+                                            Button {
+                                                selectedImage = nil
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .font(.title2)
+                                                    .foregroundColor(.white)
+                                                    .padding(8)
+                                                    .background(Color.black.opacity(0.3))
+                                                    .clipShape(Circle())
+                                            }
+                                            .padding(8)
+                                        }
+                                } else {
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "camera.fill")
+                                            .font(.system(size: 24))
+                                        Text("Add Photos")
+                                            .font(.system(size: 13, weight: .semibold))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 120)
+                                    .foregroundColor(AppTheme.accent)
+                                    .background(Color(.secondarySystemGroupedBackground))
+                                    .cornerRadius(12)
                                 }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 120)
-                                .foregroundColor(AppTheme.accent)
-                                .background(Color(.secondarySystemGroupedBackground))
-                                .cornerRadius(12)
                             }
                         }
 
@@ -151,8 +192,15 @@ struct CreatePostView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(AppTheme.accent)
+                    Button("Cancel") {
+                        resetForm()
+                        if isTabMode {
+                            selectedTab = .home
+                        } else {
+                            dismiss()
+                        }
+                    }
+                    .foregroundColor(AppTheme.accent)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: postListing) {
@@ -166,6 +214,32 @@ struct CreatePostView: View {
                     .foregroundColor(isFormValid && !isPosting ? AppTheme.accent : .secondary)
                     .disabled(!isFormValid || isPosting)
                 }
+                ToolbarItem(placement: .keyboard) {
+                    HStack {
+                        Spacer()
+                        Button {
+                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(AppTheme.accent)
+                        }
+                    }
+                }
+            }
+            .confirmationDialog("Add Photo", isPresented: $showImageSourceDialog) {
+                Button("Camera") {
+                    sourceType = .camera
+                    showImagePicker = true
+                }
+                Button("Photo Library") {
+                    sourceType = .photoLibrary
+                    showImagePicker = true
+                }
+                Button("Cancel", role: .cancel) {}
+            }
+            .sheet(isPresented: $showImagePicker) {
+                ImagePicker(image: $selectedImage, sourceType: sourceType)
             }
         }
     }
@@ -174,36 +248,61 @@ struct CreatePostView: View {
         !title.isEmpty && !description.isEmpty
     }
 
+    private func resetForm() {
+        title = ""
+        description = ""
+        credits = ""
+        exchangeItems = ""
+        selectedImage = nil
+        listingType = .offer
+        category = .skills
+    }
+
     private func postListing() {
         guard let currentUser = AuthService.shared.currentUser, isFormValid else { return }
         isPosting = true
         
         let finalCredits = listingType == .offer ? (Int(credits) ?? 0) : 0
-        
-        let newListing = Listing(
-            id: UUID().uuidString,
-            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-            description: description.trimmingCharacters(in: .whitespacesAndNewlines),
-            category: category,
-            type: listingType,
-            credits: finalCredits,
-            ownerID: currentUser.id,
-            ownerName: currentUser.name,
-            ownerAvatar: currentUser.avatarName,
-            ownerTrustScore: currentUser.trustScore,
-            distance: locationManager.locationString.isEmpty ? "Near you" : locationManager.locationString,
-            createdAt: Date(),
-            iconName: category.icon,
-            latitude: locationManager.coordinate?.latitude,
-            longitude: locationManager.coordinate?.longitude
-        )
+        let listingId = UUID().uuidString
         
         Task {
             do {
+                // Encode image as base64 data URI (avoids Firebase Storage dependency)
+                var imageUrlString: String? = nil
+                if let image = selectedImage,
+                   let imageData = image.jpegData(compressionQuality: 0.3) {
+                    let base64String = imageData.base64EncodedString()
+                    imageUrlString = "data:image/jpeg;base64,\(base64String)"
+                }
+                
+                let newListing = Listing(
+                    id: listingId,
+                    title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+                    description: description.trimmingCharacters(in: .whitespacesAndNewlines),
+                    category: category,
+                    type: listingType,
+                    credits: finalCredits,
+                    ownerID: currentUser.id,
+                    ownerName: currentUser.name,
+                    ownerAvatar: currentUser.avatarName,
+                    ownerTrustScore: currentUser.trustScore,
+                    distance: locationManager.locationString.isEmpty ? "Near you" : locationManager.locationString,
+                    createdAt: Date(),
+                    iconName: category.icon,
+                    latitude: locationManager.coordinate?.latitude,
+                    longitude: locationManager.coordinate?.longitude,
+                    imageUrl: imageUrlString
+                )
+                
                 try await FirebaseDataService.shared.createListing(newListing)
                 await MainActor.run {
                     isPosting = false
-                    dismiss()
+                    resetForm()
+                    if isTabMode {
+                        selectedTab = .home
+                    } else {
+                        dismiss()
+                    }
                 }
             } catch {
                 print("Error saving listing: \(error)")

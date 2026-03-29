@@ -31,7 +31,7 @@ struct ContentView: View {
                 MessagesView()
             }
             Tab("Post", systemImage: TabSelection.create.icon, value: .create, role: .search) {
-                CreatePostView()
+                CreatePostView(selectedTab: $selectedTab)
             }
         }
         .tint(AppTheme.accent)

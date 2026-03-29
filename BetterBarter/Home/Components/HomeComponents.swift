@@ -154,21 +154,42 @@ struct NearbyRequestCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingSM) {
-            // User info row
-            HStack(spacing: 6) {
-                AvatarView(name: listing.ownerName, size: 26)
+            // Image or Icon area
+            ZStack {
+                if let imageUrl = listing.imageUrl {
+                    ListingImageView(imageUrl: imageUrl)
+                        .frame(height: 90)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSM, style: .continuous))
+                } else {
+                    RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSM, style: .continuous)
+                        .fill(AppTheme.secondaryAccent.opacity(0.08))
+                        .frame(height: 90)
 
-                Text(listing.ownerName.components(separatedBy: " ").first ?? listing.ownerName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    Image(systemName: listing.iconName)
+                        .font(.largeTitle)
+                        .foregroundStyle(AppTheme.secondaryAccent.opacity(0.6))
+                }
 
-                Spacer()
-
-                Text(listing.shortLocation)
-                    .font(.caption2)
-                    .lineLimit(1)
-                    .foregroundStyle(.tertiary)
+                // Distance badge
+                VStack {
+                    HStack {
+                        Spacer()
+                        Text(listing.shortLocation)
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .lineLimit(1)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(AppTheme.secondaryAccent)
+                            .clipShape(Capsule())
+                            .padding(6)
+                    }
+                    Spacer()
+                }
             }
+            .frame(height: 90)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSM, style: .continuous))
 
             // Title
             Text(listing.title)
@@ -176,13 +197,24 @@ struct NearbyRequestCard: View {
                 .fontWeight(.semibold)
                 .lineLimit(1)
 
-            // Description
-            Text(listing.description)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+            // User + rating
+            HStack(spacing: 4) {
+                AvatarView(name: listing.ownerName, size: 18)
+                Text(listing.ownerName.components(separatedBy: " ").first ?? "")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("•")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Image(systemName: "star.fill")
+                    .font(.system(size: 8))
+                    .foregroundStyle(.orange)
+                Text(String(format: "%.1f", listing.ownerTrustScore / 20.0))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
 
-            // Footer
+            // Category + Credits
             HStack {
                 Text(listing.category.rawValue)
                     .font(.caption2)
@@ -214,15 +246,21 @@ struct NearbyOfferCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingSM) {
-            // Icon area (replaces image from reference)
+            // Image or Icon area
             ZStack {
-                RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSM, style: .continuous)
-                    .fill(AppTheme.accent.opacity(0.08))
-                    .frame(height: 90)
+                if let imageUrl = listing.imageUrl {
+                    ListingImageView(imageUrl: imageUrl)
+                        .frame(height: 90)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSM, style: .continuous))
+                } else {
+                    RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSM, style: .continuous)
+                        .fill(AppTheme.accent.opacity(0.08))
+                        .frame(height: 90)
 
-                Image(systemName: listing.iconName)
-                    .font(.largeTitle)
-                    .foregroundStyle(AppTheme.accent.opacity(0.6))
+                    Image(systemName: listing.iconName)
+                        .font(.largeTitle)
+                        .foregroundStyle(AppTheme.accent.opacity(0.6))
+                }
 
                 // Distance badge
                 VStack {
@@ -242,6 +280,7 @@ struct NearbyOfferCard: View {
                     Spacer()
                 }
             }
+            .frame(height: 90)
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSM, style: .continuous))
 
             // Title
