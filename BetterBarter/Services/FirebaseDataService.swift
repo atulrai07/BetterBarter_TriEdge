@@ -246,19 +246,25 @@ class FirebaseDataService: DataServiceProtocol {
     func getNotifications(userId: String) async throws -> [AppNotification] {
         let snapshot = try await db.collection("notifications")
             .whereField("recipientId", isEqualTo: userId)
-            .order(by: "createdAt", descending: true)
             .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: AppNotification.self) }
+        let notifications = snapshot.documents.compactMap { try? $0.data(as: AppNotification.self) }
+        // Sort client-side to avoid index requirement
+        return notifications.sorted(by: { $0.createdAt > $1.createdAt })
     }
     
     func listenForNotifications(userId: String, completion: @escaping ([AppNotification]) -> Void) -> ListenerRegistration {
         return db.collection("notifications")
             .whereField("recipientId", isEqualTo: userId)
-            .order(by: "createdAt", descending: true)
             .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Error listening for notifications: \(error.localizedDescription)")
+                    return
+                }
                 guard let documents = snapshot?.documents else { return }
                 let notifications = documents.compactMap { try? $0.data(as: AppNotification.self) }
-                completion(notifications)
+                // Sort client-side to avoid index requirement
+                let sorted = notifications.sorted(by: { $0.createdAt > $1.createdAt })
+                completion(sorted)
             }
     }
     

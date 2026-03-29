@@ -192,17 +192,22 @@ struct ListingDetailView: View {
                         await MainActor.run { self.isLoadingTrade = false }
                     }
                 } else if let uid = AuthService.shared.currentUserId {
-                    // Normal view
-                    let snapshot = try? await Firestore.firestore().collection("trades")
-                        .whereField("listing.id", isEqualTo: listing.id)
-                        .whereField("requester.id", isEqualTo: uid)
-                        .getDocuments()
-                    if let doc = snapshot?.documents.first, let trade = try? doc.data(as: Trade.self) {
+                    // Normal view - find any trade involving this listing and the current user
+                    do {
+                        let snapshot = try await Firestore.firestore().collection("trades")
+                            .whereField("listing.id", isEqualTo: listing.id)
+                            .getDocuments()
+                        
+                        // Filter client-side to see if current user is involved
+                        let docs = snapshot.documents.compactMap { try? $0.data(as: Trade.self) }
+                        let trade = docs.first { $0.requester.id == uid || $0.provider.id == uid }
+                        
                         await MainActor.run {
                             self.existingTrade = trade
                             self.isLoadingTrade = false
                         }
-                    } else {
+                    } catch {
+                        print("Error fetching trades for listing: \(error)")
                         await MainActor.run { self.isLoadingTrade = false }
                     }
                 } else {

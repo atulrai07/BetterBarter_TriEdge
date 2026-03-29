@@ -153,12 +153,20 @@ struct TradeConfirmationView: View {
                     do {
                         try await FirebaseDataService.shared.createTrade(trade)
                         
-                        // Notify the listing owner (the provider in this case)
+                        // Detect current user ID
+                        let currentUserId = AuthService.shared.currentUser?.id ?? ""
+                        // The recipient should be the other person in the trade
+                        let recipientId = (trade.requester.id == currentUserId) ? trade.provider.id : trade.requester.id
+                        // The sender name is the current user's name
+                        let senderName = (trade.requester.id == currentUserId) ? trade.requester.name : trade.provider.name
+                        
+                        print("Creating notification for: \(recipientId) from: \(senderName)")
+
                         let notification = AppNotification(
                             id: UUID().uuidString,
-                            recipientId: trade.provider.id,
-                            senderId: trade.requester.id,
-                            senderName: trade.requester.name,
+                            recipientId: recipientId,
+                            senderId: currentUserId,
+                            senderName: senderName,
                             listingId: trade.listing.id,
                             listingTitle: trade.listing.title,
                             tradeId: trade.id,
@@ -166,14 +174,16 @@ struct TradeConfirmationView: View {
                             createdAt: Date(),
                             type: .tradeRequest
                         )
-                        try? await FirebaseDataService.shared.createNotification(notification)
+                        
+                        try await FirebaseDataService.shared.createNotification(notification)
+                        print("Notification created successfully!")
                         
                         await MainActor.run {
                             appState.isTabBarHidden = true
                             navigateToActiveTrade = true
                         }
                     } catch {
-                        print("Failed to create trade: \(error)")
+                        print("Error in trade/notification process: \(error.localizedDescription)")
                     }
                 }
             }) {
