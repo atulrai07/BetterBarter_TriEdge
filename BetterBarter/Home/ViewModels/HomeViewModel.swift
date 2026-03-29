@@ -1,13 +1,32 @@
 import SwiftUI
+import CoreLocation
+import Combine
 
 @Observable
 class HomeViewModel {
     var nearbyListings: [Listing] = []
     var isLoading: Bool = false
     var hiddenListingIDs: Set<String> = []
+    var userLocation: CLLocation?
+    
+    private let locationManager = LocationManager()
+    private var cancellables = Set<AnyCancellable>()
     
     init() {
+        setupLocationUpdates()
         fetchListings()
+    }
+    
+    private func setupLocationUpdates() {
+        locationManager.$location
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] location in
+                self?.userLocation = location
+            }
+            .store(in: &cancellables)
+        
+        // Request initial location
+        locationManager.requestLocation()
     }
     
     func fetchListings() {

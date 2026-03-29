@@ -8,6 +8,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var locationString: String = ""
     @Published var isRequestingLocation: Bool = false
     @Published var coordinate: CLLocationCoordinate2D?
+    @Published var location: CLLocation?
     
     override init() {
         super.init()
@@ -41,6 +42,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             DispatchQueue.main.async {
                 self?.isRequestingLocation = false
                 self?.coordinate = safeCoordinate
+                self?.location = location
                 
                 if let error = error {
                     print("DEBUG: Geocoding error \(error.localizedDescription)")

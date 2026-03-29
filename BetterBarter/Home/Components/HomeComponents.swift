@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 // MARK: - Trust Score Hero Card (matching reference design)
 
@@ -151,6 +152,7 @@ struct QuickActionButton: View {
 
 struct NearbyRequestCard: View {
     let listing: Listing
+    let userLocation: CLLocation?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingSM) {
@@ -174,7 +176,7 @@ struct NearbyRequestCard: View {
                 VStack {
                     HStack {
                         Spacer()
-                        Text(listing.shortLocation)
+                        Text(listing.formattedDistance(from: userLocation))
                             .font(.caption2)
                             .fontWeight(.medium)
                             .lineLimit(1)
@@ -243,6 +245,7 @@ struct NearbyRequestCard: View {
 
 struct NearbyOfferCard: View {
     let listing: Listing
+    let userLocation: CLLocation?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingSM) {
@@ -266,7 +269,7 @@ struct NearbyOfferCard: View {
                 VStack {
                     HStack {
                         Spacer()
-                        Text(listing.shortLocation)
+                        Text(listing.formattedDistance(from: userLocation))
                             .font(.caption2)
                             .fontWeight(.medium)
                             .lineLimit(1)

@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 
 struct Listing: Identifiable, Hashable, Codable {
     let id: String
@@ -26,6 +27,18 @@ struct Listing: Identifiable, Hashable, Codable {
             return lastTwo.joined(separator: ", ")
         }
         return distance
+    }
+
+    func formattedDistance(from location: CLLocation?) -> String {
+        guard let userLoc = location,
+              let lat = latitude,
+              let lon = longitude else {
+            return shortLocation
+        }
+        let listingLoc = CLLocation(latitude: lat, longitude: lon)
+        let distanceInMeters = userLoc.distance(from: listingLoc)
+        let km = distanceInMeters / 1000
+        return String(format: "%.1f km", km)
     }
 
     // MARK: Category

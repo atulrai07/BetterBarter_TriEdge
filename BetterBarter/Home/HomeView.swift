@@ -92,7 +92,7 @@ struct HomeView: View {
                                     HStack(spacing: AppTheme.spacingMD) {
                                         ForEach(viewModel.nearbyRequests) { listing in
                                             NavigationLink(value: listing) {
-                                                NearbyRequestCard(listing: listing)
+                                                NearbyRequestCard(listing: listing, userLocation: viewModel.userLocation)
                                             }
                                             .buttonStyle(.plain)
                                             .contextMenu {
@@ -122,7 +122,7 @@ struct HomeView: View {
                                     HStack(spacing: AppTheme.spacingMD) {
                                         ForEach(viewModel.nearbyOffers) { listing in
                                             NavigationLink(value: listing) {
-                                                NearbyOfferCard(listing: listing)
+                                                NearbyOfferCard(listing: listing, userLocation: viewModel.userLocation)
                                             }
                                             .buttonStyle(.plain)
                                             .contextMenu {
