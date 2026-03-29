@@ -6,6 +6,7 @@ class ProfileViewModel {
     private let isCurrentUser: Bool
     var reviews: [Review] = []
     var activeListings: [Listing] = []
+    var completedTrades: [Trade] = []
     var isLoading: Bool = false
 
     init(user: User? = nil) {
@@ -19,6 +20,7 @@ class ProfileViewModel {
         fetchUserData()
         fetchActiveListings()
         fetchReviews()
+        fetchMyTrades()
     }
     
     var user: User {
@@ -53,6 +55,19 @@ class ProfileViewModel {
             } catch {
                 print("DEBUG: Failed to fetch user listings: \(error)")
                 await MainActor.run { self.isLoading = false }
+            }
+        }
+    }
+
+    func fetchMyTrades() {
+        Task {
+            do {
+                let allTrades = try await FirebaseDataService.shared.getTrades()
+                await MainActor.run {
+                    self.completedTrades = allTrades.filter { $0.status == .completed }
+                }
+            } catch {
+                print("DEBUG: Failed to fetch trades: \(error)")
             }
         }
     }

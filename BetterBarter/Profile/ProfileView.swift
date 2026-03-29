@@ -5,7 +5,7 @@ struct ProfileView: View {
     @State private var showingEditName = false
     @State private var nameToEdit = ""
 
-    init(user: User = .current) {
+    init(user: User? = nil) {
         _viewModel = State(initialValue: ProfileViewModel(user: user))
     }
 
@@ -150,6 +150,33 @@ struct ProfileView: View {
                         .padding(.horizontal)
                     }
 
+                    // My Trades
+                    if AuthService.shared.currentUserId == viewModel.user.id {
+                        VStack(alignment: .leading, spacing: AppTheme.spacingMD) {
+                            SectionHeader(title: "My Trades")
+                                .padding(.horizontal)
+                                
+                            NavigationLink(destination: MyTradesView()) {
+                                HStack {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                        .foregroundStyle(AppTheme.accent)
+                                    Text("View Trade History")
+                                        .fontWeight(.medium)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(AppTheme.cornerRadiusLG)
+                                .shadow(color: .black.opacity(0.05), radius: 10, y: 5)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal)
+                        }
+                    }
+
                     // Settings
                     VStack(alignment: .leading, spacing: 0) {
                         SectionHeader(title: "Settings")
@@ -210,6 +237,7 @@ struct ProfileView: View {
                 viewModel.fetchUserData()
                 viewModel.fetchReviews()
                 viewModel.fetchActiveListings()
+                viewModel.fetchMyTrades()
             }
             .alert("Edit Name", isPresented: $showingEditName) {
                 TextField("New Name", text: $nameToEdit)
