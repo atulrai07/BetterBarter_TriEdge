@@ -188,6 +188,7 @@ struct CreatePostView: View {
                     .padding(.bottom, 32)
                 }
             }
+            .hideKeyboardWhenTappedAround()
             .navigationTitle("New Listing")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -77,6 +77,7 @@ struct LoginView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppTheme.secondaryBackground.ignoresSafeArea())
+        .hideKeyboardWhenTappedAround()
     }
     
     private func handleAuth() {

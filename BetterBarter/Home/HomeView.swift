@@ -67,27 +67,7 @@ struct HomeView: View {
                         )
                         .padding(.horizontal)
 
-                        // Quick Action Buttons
-                        HStack(spacing: AppTheme.spacingMD) {
-                            QuickActionButton(
-                                title: "Request Help",
-                                icon: "hand.raised.fill",
-                                color: AppTheme.accent
-                            ) {
-                                createPostInitialType = .request
-                                showCreatePost = true
-                            }
 
-                            QuickActionButton(
-                                title: "Offer Skill",
-                                icon: "chart.line.uptrend.xyaxis",
-                                color: AppTheme.secondaryAccent
-                            ) {
-                                createPostInitialType = .offer
-                                showCreatePost = true
-                            }
-                        }
-                        .padding(.horizontal)
 
                         // Nearby Requests (horizontal scroll, 1 visible at a time)
                         if !viewModel.nearbyRequests.isEmpty {

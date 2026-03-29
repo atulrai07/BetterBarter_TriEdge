@@ -64,6 +64,7 @@ struct ExploreView: View {
                 }
             }
             .background(AppTheme.background)
+            .hideKeyboardWhenTappedAround()
             .navigationTitle("Explore")
             .searchable(text: $viewModel.searchText, prompt: "Search skills, services, goods...")
             .navigationDestination(for: Listing.self) { listing in

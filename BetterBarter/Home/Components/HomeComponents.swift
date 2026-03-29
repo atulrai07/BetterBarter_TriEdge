@@ -9,108 +9,78 @@ struct TrustScoreHeroCard: View {
     let tier: AppTheme.TrustTier
 
     @State private var animatedProgress: Double = 0
-
+    
+    // Custom colors matching the image
+    private let cardBg = Color(red: 24/255, green: 164/255, blue: 160/255) // Teal background
+    private let textYellow = Color(red: 254/255, green: 203/255, blue: 13/255) // Yellow
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingLG) {
+        VStack(spacing: 20) {
             // Header row
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Your Trust Score")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.caption)
-                        Text(tier.rawValue + " Neighbour")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                    }
-                    .foregroundStyle(.white.opacity(0.8))
-                }
-
+                Text("Your Trust Score")
+                    .font(.headline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white)
+                
                 Spacer()
-
+                
                 Button {
                     // View History action
                 } label: {
                     Text("View History")
-                        .font(.caption)
+                        .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(AppTheme.accent)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .foregroundStyle(textYellow)
                 }
             }
-
-            // Score & Credits boxes
-            HStack(spacing: AppTheme.spacingMD) {
-                // Trust Score box
-                VStack(alignment: .leading, spacing: AppTheme.spacingSM) {
-                    Text("\(Int(trustScore))")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-
-                    Text("Trust Score")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-
-                    // Progress bar
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(.white.opacity(0.2))
-                                .frame(height: 6)
-
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [.yellow, .orange],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: geo.size.width * animatedProgress / 100, height: 6)
-                        }
+            
+            // Content row
+            HStack {
+                // Circular Progress
+                ZStack {
+                    Circle()
+                        .stroke(.white, lineWidth: 10)
+                    
+                    Circle()
+                        .trim(from: 0, to: CGFloat(animatedProgress / 100))
+                        .stroke(textYellow, style: StrokeStyle(lineWidth: 10, lineCap: .butt))
+                        .rotationEffect(.degrees(-90))
+                    
+                    VStack(spacing: 2) {
+                        Text("\(Int(trustScore))%")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(.white)
+                        
+                        Text("Trust Score")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white)
                     }
-                    .frame(height: 6)
                 }
-                .padding(AppTheme.spacingMD)
-                .background(.white.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMD, style: .continuous))
-
-                // Credits box
-                VStack(alignment: .leading, spacing: AppTheme.spacingSM) {
+                .frame(width: 90, height: 90)
+                
+                Spacer()
+                
+                // Credits
+                VStack(alignment: .leading, spacing: 4) {
                     Text("\(credits)")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-
-                    Text("Credits")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-
-                    HStack(spacing: 4) {
-                        Image(systemName: "circle.fill")
-                            .font(.system(size: 6))
-                            .foregroundStyle(.green)
-                        Text("Available")
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.6))
-                    }
+                    
+                    Text("Credits\nAvailable")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(.white)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(AppTheme.spacingMD)
-                .background(.white.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMD, style: .continuous))
+                .padding(.trailing, 16)
             }
+            .padding(.horizontal, 8)
         }
-        .padding(AppTheme.spacingXL)
+        .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusXL, style: .continuous)
-                .fill(AppTheme.accentGradient)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(cardBg)
         )
-        .shadow(color: AppTheme.accent.opacity(0.3), radius: 12, x: 0, y: 6)
         .onAppear {
             withAnimation(.spring(response: 1.0, dampingFraction: 0.7).delay(0.3)) {
                 animatedProgress = trustScore
